@@ -1,0 +1,1 @@
+../phantomjs --web-security=false --proxy-auth=ethspy:yitai2506 --proxy=120.210.206.82:808 phantomjs.js '{"url": "http://www.tianyancha.com/company/14573362", "headers": {"Referer": "http://www.tianyancha.com/company/14573362", "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36"}}'
