@@ -253,6 +253,32 @@ def extractElement(html, path_map):
             json_str = html.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t').replace('\b', '\\b').replace('\f', '\\f')
             obj = json.loads(json_str)
         elements = getElementByJpathMap(obj, path_map)
+    elif path_map['path_type'] == 'pipe':
+        content = html
+        elements = {'_out':[html]}
+        for pmap in path_map['_pipe']:
+            assert type(pmap) == dict
+            key = ''
+            if '_key' in pmap:
+                key = pmap.pop('_key')
+            if type(elements) == list:
+                for i in range(len(elements)):
+                    ele = elements[i]
+                    assert type(ele) == dict
+                    assert '_out' in ele
+                    out = ''.join(ele.pop('_out'))
+                    eles = extractElement(out, pmap)
+                    elements[i].update(eles)
+            elif type(elements) == dict:
+                out = ''.join(elements.pop('_out'))
+                eles = extractElement(out, pmap)
+                if type(eles) == dict:
+                    elements.update(eles)
+                elif type(eles) == list:
+                    if key:
+                        elements['key'] = eles
+                    else:
+                        elements = eles
     return elements
 
 def getContent(html):

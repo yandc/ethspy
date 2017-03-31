@@ -456,7 +456,7 @@ class MiaArticleProcessor(CrawlerProcessor):
         config = self.configs[sect]
         fakeUrl = sect+'//'+obj2string(ele['srcId'])
         if sect == 'wx':
-            if len(ele['title']) == 0 or len(ele['pics'])== 0:
+            if len(ele['title']) == 0 or len(ele['pics']) == 0:
                 return self.onBroken(task, result, EMPTY_KEYWORD)
         if 'source' in ele:
             ele['source'] = sect+':'+obj2string(ele['source'])
@@ -466,7 +466,7 @@ class MiaArticleProcessor(CrawlerProcessor):
         if ret == 1:#need insert or update
             if 'title' in ele:
                 ele['title'] = obj2string(ele['title'])
-            logging.info('Get article %s'%ele['title'])
+                logging.info('Get article %s'%ele['title'])
             if 'tag' in ele:
                 ele['tag'] = obj2string(ele['tag'])
             ele['text'] = obj2string(ele['text'])
