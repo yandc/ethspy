@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-from ethspy import *
-from model import *
 from spider import *
-from redis_util import *
 import sys
 import os
 import bisect
@@ -11,10 +8,8 @@ import bisect
 '''
 Can only config one target
 '''
-Models = {'leads':Leads,
-          'investor':Investor,
-          'investment':Investment,
-          'organization':Organization}
+Models = {'article':Article}
+
 class IdFiller(Spider):
     configField = {'path_map':TYPE_JSON+REQUIRED, 'headers':TYPE_JSON, 'post':TYPE_STR, 'update':TYPE_BOOL,
                    'link_format':TYPE_STR, 'dynamic':TYPE_BOOL, 'scan_format':TYPE_STR, 'js':TYPE_STR}
@@ -139,3 +134,13 @@ class LagouJobCrawler(LagouProcessor, Spider):
         return {'sect':sect, 'type':'newjob', 'url':url, 'post':post, 'header':self.Header}
         
 class QimingpianOrgCrawler(QimingpianOrgProcessor, Spider):pass
+
+class MiaArticleCrawler(MiaArticleProcessor, Spider):
+    def getProxy(self):
+        return ['H203003O85OWU77D:2E8751BD559CCC72@proxy.abuyun.com:9020']
+
+class ImageCollector(ImageCollectProcessor, Spider):
+    def getProxy(self):
+        return ['miayandc:miayandc@106.75.99.27:6234']
+
+    

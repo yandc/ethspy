@@ -15,6 +15,7 @@ import hashlib
 import cookielib
 from model import *
 from gevent import subprocess
+import pdb
 
 RequestHeader = {'User-Agent':"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36"}
 session = requests.Session()
@@ -246,8 +247,11 @@ def extractElement(html, path_map):
         dom = etree.HTML(html)
         elements = getElementByXpathMap(dom, path_map)
     elif path_map['path_type'] == 'jpath':
-        json_str = html.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t').replace('\b', '\\b').replace('\f', '\\f')
-        obj = json.loads(json_str)
+        try:
+            obj = json.loads(html)
+        except:
+            json_str = html.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t').replace('\b', '\\b').replace('\f', '\\f')
+            obj = json.loads(json_str)
         elements = getElementByJpathMap(obj, path_map)
     return elements
 

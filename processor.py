@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 from ethspy import *
-from model import *
-from redis_util import *
 import sys
 import os
+import pdb
 
 SUCC_PAGE = 'Succ'
 FAIL_PAGE = 'Fail'
@@ -55,7 +54,6 @@ class Processor():
         if maxRetry < 0 or maxRetry > task['retry']:
             return [task]
         else:
-            spyError(task['url'])
             return []
 
 class CrawlerProcessor(Processor):
@@ -424,3 +422,109 @@ class QimingpianOrgProcessor(CompanyInfoProcessor):
             preEle = ele
             pushInto(OrgDetail, ele, ['orgName', 'projectName'])
         
+class MiaArticleProcessor(CrawlerProcessor):
+    context = {
+        '52ce1c02b4c4d649b58b8930':{'catgy':u'彩妆', 'keyword':u'综合'},
+        '5590c45c15ff00d961fd14e8':{'catgy':u'美妆护肤', 'keyword':u'综合'},
+        '52ce1c02b4c4d649b58b892c':{'catgy':u'护肤', 'keyword':u'综合'},
+        '52ce1c02b4c4d649b58b8936':{'catgy':u'母婴', 'keyword':u'综合'},
+        'momoso':{'catgy':u'海淘综合', 'keyword':u'app-晒衣橱'},
+        'biyabi':{'catgy':u'海淘综合', 'keyword':u'app-逛晒单'},
+        'vmei':{'catgy':u'美妆', 'keyword':u'全部'},
+        'ymatou':{'catgy':u'全球代购', 'keyword':u'全部'},
+        'dealmoon':{'catgy':u'全球代购', 'keyword':u'全部'},
+        'wx':{'catgy':u'时尚穿搭护肤美妆', 'keyword':u''}
+    }
+    def beforeProcess(self, task, result):
+        eles = result['element']
+        sect = task['sect']
+        if sect == 'vmei' and task['type'] == 'list':
+            for ele in eles:
+                for i in range(len(ele['pics'])):
+                    ele['pics'][i] = "https://img06.sephome.com/" + ele['pics'][i]
+        elif sect == 'dealmoon' and task['type'] == 'list':
+            for ele in eles:
+                link = ele['link'][0]
+                idx = link.rfind('/')
+                ele['link'][0] = link[idx+1:].replace('?', '&')
+        elif task['type'] == 'detail':
+            CrawlerProcessor.beforeProcess(self, task, result)
+        return True
+    def processDetailPage(self, task, result):
+        ele = result['element']
+        sect = task['sect']
+        config = self.configs[sect]
+        fakeUrl = sect+'//'+obj2string(ele['srcId'])
+        if sect == 'wx':
+            if len(ele['title']) == 0 or len(ele['pics'])== 0:
+                return self.onBroken(task, result, EMPTY_KEYWORD)
+        if 'source' in ele:
+            ele['source'] = sect+':'+obj2string(ele['source'])
+        else:
+            ele['source'] = sect
+        ret = spySuccess(fakeUrl, ele)
+        if ret == 1:#need insert or update
+            if 'title' in ele:
+                ele['title'] = obj2string(ele['title'])
+            logging.info('Get article %s'%ele['title'])
+            if 'tag' in ele:
+                ele['tag'] = obj2string(ele['tag'])
+            ele['text'] = obj2string(ele['text'])
+            ele['pics'] = json.dumps(ele['pics'])
+            ele['srcId'] = obj2string(ele['srcId'])
+            if 'brand' in ele:
+                ele['brand'] = obj2string(ele['brand'])
+            if 'date' in ele:
+                ele['date'] = obj2string(ele['date'])
+            if sect == 'xiaohongshu':
+                ele.update(self.context[task['url'][-24:]])
+            elif sect in self.context:
+                ele.update(self.context[sect])
+            ele['status'] = 'INIT'
+
+            pushInto(Article, ele, ['source', 'srcId'])
+
+    def afterProcess(self, task, result):
+        tasks = []
+        if task['sect'] == 'xiaohongshu' and len(result['element']) > 0:
+            ele = result['element']
+            url = task['url']
+            idx = url.find('&oid')
+            url = '%s&start=%s&num=40%s'%(url[:idx], ele[-1]['srcId'][0], url[idx:])
+            task['url'] = url
+        if task['sect'] == 'wx' and task['type'] == 'list':
+            listLength = 12
+            if len(result['element']) < listLength:
+                return tasks
+            url = task['url']
+            if 'offset' not in task:
+                task['offset'] = 0
+                url += '?start=0'
+            task['offset'] += listLength
+            idx = url.rfind('=')
+            task['url'] = url[:idx+1] + str(task['offset'])
+            tasks.append(task)
+        return tasks
+
+class LinkDownloadProcessor(Processor):
+    def registProcessor(self):
+        self.processRoute['download'] = self.processDownload
+
+    def processDownload(self, task, result):
+        try:
+            if not os.path.exists(task['path']):
+                os.mkdir(task['path'])
+            path = task['path']+task['name']
+            fp = open(path, 'w')
+            fp.write(result['content'])
+            fp.close()
+        except Exception, e:
+            pdb.set_trace()
+            logging.error(str(e))
+        tbname = self.srcModel._meta.db_table
+        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'toLink':path})
+
+class ImageCollectProcessor(CrawlerProcessor):
+    def processDetailPage(self, task, result):
+        ele = result['element']
+        pushInto(Links, {'source':task['sect'], 'link':ele['pics'][0]}, ['link'])

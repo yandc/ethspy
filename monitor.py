@@ -12,7 +12,7 @@ class Monitor():
         self.info['taskType'] = task['type']
         self.info['errorCode'] = code
         self.info['url'] = task['url']
-        if task['post']:
+        if 'post' in task and task['post']:
             self.info['post'] = task['post']
         self.info['proxy'] = task['proxy']
         self.info['status'] = result['status']

@@ -4,7 +4,6 @@ from flask import *
 import sys
 import logging
 import json
-from redis_util import *
 
 app = Flask(__name__)
 

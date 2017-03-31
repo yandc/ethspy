@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 from ethspy import *
-from redis_util import *
 from scheduler import *
 from processor import *
 from monitor import *
 import sys
 import gevent
 from gevent import monkey;
-monkey.patch_all()
+monkey.patch_all(select=False)
 
 TYPE_STR = 1
 TYPE_JSON = 2
@@ -29,11 +28,7 @@ class Spider(Processor, Scheduler):
         self.monitor = Monitor(self.__class__.__name__)
 
     def getProxy(self):
-        redis = RedisUtil()
-        proxy = redis.get_obj('ethspy:proxy:%s'%self.__class__.__name__)
-        if proxy == None or len(proxy) == 0:
-            return ['']
-        return proxy
+        return ['']
 
     def onStart(self):
         for sect, url, post in urlPoller(self.configs):
@@ -43,19 +38,23 @@ class Spider(Processor, Scheduler):
         return {'sect':sect, 'type':'list', 'url':url, 'post':post}
             
     def onFetch(self, task, cid):
-        config = self.configs[task['sect']]
-        header = config['headers'].copy()
-        if 'header' in task:
-            header.update(task['header'])
-        if task['post'] == '':
-            task['post'] = None
         task['proxy'] = self.proxies[cid]
-        result = fetch(task['url'], self.proxies[cid], header, task['post'], dynamic=config['dynamic'], js=config['js'])
-        if result['status'] == 200:
-            result['element'] = extractElement(result['content'], config['path_map'][task['type']])
+        if task['sect'] not in self.configs:
+            result = fetch(task['url'], self.proxies[cid])
+            return result
         else:
-            result['element'] = None
-        return result
+            config = self.configs[task['sect']]
+            header = config['headers'].copy()
+            if 'header' in task:
+                header.update(task['header'])
+            if task['post'] == '':
+                task['post'] = None
+            result = fetch(task['url'], self.proxies[cid], header, task['post'], dynamic=config['dynamic'], js=config['js'])
+            if result['status'] == 200:
+                result['element'] = extractElement(result['content'], config['path_map'][task['type']])
+            else:
+                result['element'] = None
+            return result
 
     def onFinish(self):
         logging.info('Spider finish.')
@@ -78,6 +77,7 @@ class Spider(Processor, Scheduler):
                 del threads[:]
             task = self.getTask(cid)
             if task == None:
+                gevent.sleep(20)
                 gevent.joinall(threads)
                 task = self.getTask(cid)
                 if task == None:
