@@ -12,8 +12,8 @@ class Patcher(Spider):
     batchSize = 10
     configField = {'path_map':TYPE_JSON+REQUIRED, 'dynamic':TYPE_BOOL, 'headers':TYPE_JSON,
                    'link_format':TYPE_STR, 'update':TYPE_BOOL, 'post':TYPE_STR, 'entry_format':TYPE_STR}
-    def __init__(self, configFile, theSect=None):
-        Spider.__init__(self, configFile, theSect=theSect)
+    def __init__(self, configFile, theSect=None, interval=5):
+        Spider.__init__(self, configFile, theSect=theSect, interval=interval)
         self.count = 0
         self.rowCount = 0
         self.loadCheckpoint()
@@ -97,6 +97,7 @@ class LagouPatcher(LagouProcessor, LeadsPatcher):pass
 
 class LinkDownloader(LinkDownloadProcessor, Patcher):
     srcModel = Article
+    batchSize = 30
     def getProxy(self):
         return ['', 'miayandc:miayandc@106.75.99.27:6234']
     
@@ -113,12 +114,24 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
 
     def makeTask(self, row):
         tasks = []
-        pics = json.loads(row.pics)
-        count = 0
-        
+        try:
+            if row.absentPics:
+                pics = json.loads(row.absentPics)
+            else:
+                pics = json.loads(row.pics)
+        except Exception, e:
+            logging.error(str(e))
+            return tasks
+        count = -1
         for pic in pics:
+            if pic.find('http') != 0:
+                continue
+            count += 1
             try:
                 mdl = LinkMap.select().where(LinkMap.fromLink==pic).get()
+                if not mdl.toLink and row.status != 'BROKEN':
+                    row.status = 'BROKEN'
+                    row.save()
                 continue
             except:
                 pass
@@ -131,9 +144,8 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
             name = '%s-%s.%s'%(row.id, count, suffix)
             if os.path.exists(path+name):
                 continue
-            task = {'sect':row.source, 'type':'download', 'url':pic, 'path':path, 'name':name}
+            task = {'sect':row.source, 'type':'download', 'url':pic, 'path':path, 'name':name, 'id':row.id}
             tasks.append(task)
-            count += 1
         return tasks
 
     def onFinish(self):

@@ -77,17 +77,18 @@ class CrawlerProcessor(Processor):
                 continue
             if len(ele['link']) == 0:#can find out path_map error
                 return self.onBroken(task, result, EMPTY_LINK)
-            
-            link = str(ele['link'][0])#get link from [link]
-            if len(config['link_format']) > 0:
-                link = config['link_format']%(link)
-            elif link.lower().find('http') != 0:
-                net = urlparse(url)
-                link = net[0] + '://' + net[1] + link
-            link = link.replace('https://', 'http://')
-            if config['update'] == False and UrlIsExist(link):
-                continue
-            tasks.append({'sect':sect, 'type':'detail', 'url':link, 'post':None, 'ele':ele})
+
+            for link in ele['link']:
+                link = str(link)
+                if len(config['link_format']) > 0:
+                    link = config['link_format']%(link)
+                elif link.lower().find('http') != 0:
+                    net = urlparse(url)
+                    link = net[0] + '://' + net[1] + link
+                link = link.replace('https://', 'http://')
+                if config['update'] == False and UrlIsExist(link):
+                    continue
+                tasks.append({'sect':sect, 'type':'detail', 'url':link, 'post':None, 'ele':ele})
         return tasks
             
     def processDetailPage(self, task, result):
@@ -433,8 +434,55 @@ class MiaArticleProcessor(CrawlerProcessor):
         'vmei':{'catgy':u'美妆', 'keyword':u'全部'},
         'ymatou':{'catgy':u'全球代购', 'keyword':u'全部'},
         'dealmoon':{'catgy':u'全球代购', 'keyword':u'全部'},
-        'wx':{'catgy':u'时尚穿搭护肤美妆', 'keyword':u''}
+        'wx':{'catgy':u'时尚穿搭护肤美妆', 'keyword':u''},
+        u'weibo:种草囤货少女':{'catgy':u'美妆护肤', 'keyword':u'美妆'},
+        u'weibo:北美省钱快报':{'catgy':u'全球代购', 'keyword':u'综合'},
+        u'weibo:我是种草囤货菌':{'catgy':u'综合', 'keyword':u'综合'},
+        u'weibo:种草达人绵绵酱':{'catgy':u'综合', 'keyword':u'综合'},
+        u'weibo:化妆miuo的微博':{'catgy':u'美妆护肤', 'keyword':u'美妆'},
+        u'weibo:各国美食学起来YOU':{'catgy':u'家居生活', 'keyword':u'综合'},
+        u'weibo:买买菌':{'catgy':u'综合', 'keyword':u''},
+        u'weibo:美妆第一线':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:化了个妆':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:潮美妆君':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:顶尖化妆教程':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:美容护肤show':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:长颈鹿酱刷睫毛':{'catgy':u'美妆护肤', 'keyword':u''},
+        u'weibo:时尚编辑Anna':{'catgy':u'时尚穿搭', 'keyword':u''},
+        u'weibo:宝宝美食大本营':{'catgy':u'宝宝喂养', 'keyword':u''},
+        u'weibo:宝宝辅食营养攻略':{'catgy':u'宝宝喂养', 'keyword':u''},
+        u'weibo:美味宝宝辅食':{'catgy':u'宝宝喂养', 'keyword':u''},
+        u'weibo:萌煮辅食':{'catgy':u'宝宝喂养', 'keyword':u''},
+        u'weibo:宝宝辅食跟我学':{'catgy':u'宝宝喂养', 'keyword':u''},
+        u'weibo:潮宝宝穿搭顾问':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:宝宝穿衣会搭配':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:做衣服的酱妈':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:宝宝衣物穿搭日志':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:i潮童':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'55bbs:【丽人妆颜】':{'catgy':u'美妆护肤', 'keyword':u'论坛帖子'},
+        u'55bbs:【孕宝亲子】':{'catgy':u'孕宝亲子', 'keyword':u'论坛帖子'}
     }
+    def registProcessor(self):
+        CrawlerProcessor.registProcessor(self)
+        self.processRoute['list1'] = self.processList1Page
+        self.processRoute['list2'] = self.processList2Page
+
+    def processList1Page(self, task, result):
+        tasks = self.processListPage(task, result)
+        for task in tasks:
+            task['url'] += '1_1.html'
+            task['type'] = 'list2'
+            del task['ele']
+        return tasks
+    
+    def processList2Page(self, task, result):
+        tasks = self.processListPage(task, result)
+        for task in tasks:
+            task['type'] = 'list'
+            task['url'] += '1/1/'
+            del task['ele']
+        return tasks
+    
     def beforeProcess(self, task, result):
         eles = result['element']
         sect = task['sect']
@@ -447,6 +495,15 @@ class MiaArticleProcessor(CrawlerProcessor):
                 link = ele['link'][0]
                 idx = link.rfind('/')
                 ele['link'][0] = link[idx+1:].replace('?', '&')
+        elif sect == '55bbs' and task['type'] == 'list':
+            for ele in eles:
+                link1 = ele.pop('link1')[0]
+                link2 = ele.pop('link2')[0]
+                idx = link1[7:].find('-')
+                tid = link1[7:][:idx]
+                idx = link2.rfind('-')
+                uid = link2[idx+1:][:-5]
+                ele['link'] = ['http://bbs.55bbs.com/viewthread.php?tid=%s&page=1&authorid=%s'%(tid, uid)]
         elif task['type'] == 'detail':
             CrawlerProcessor.beforeProcess(self, task, result)
         return True
@@ -458,12 +515,12 @@ class MiaArticleProcessor(CrawlerProcessor):
         if sect == 'wx':
             if len(ele['title']) == 0 or len(ele['pics']) == 0:
                 return self.onBroken(task, result, EMPTY_KEYWORD)
-        if 'source' in ele:
-            ele['source'] = sect+':'+obj2string(ele['source'])
-        else:
-            ele['source'] = sect
         ret = spySuccess(fakeUrl, ele)
         if ret == 1:#need insert or update
+            if 'source' in ele:
+                ele['source'] = sect+':'+obj2string(ele['source'])
+            else:
+                ele['source'] = sect
             if 'title' in ele:
                 ele['title'] = obj2string(ele['title'])
                 logging.info('Get article %s'%ele['title'])
@@ -478,8 +535,8 @@ class MiaArticleProcessor(CrawlerProcessor):
                 ele['date'] = obj2string(ele['date'])
             if sect == 'xiaohongshu':
                 ele.update(self.context[task['url'][-24:]])
-            elif sect in self.context:
-                ele.update(self.context[sect])
+            elif ele['source'] in self.context:
+                ele.update(self.context[ele['source']])
             ele['status'] = 'INIT'
 
             pushInto(Article, ele, ['source', 'srcId'])
@@ -507,6 +564,13 @@ class MiaArticleProcessor(CrawlerProcessor):
         return tasks
 
 class LinkDownloadProcessor(Processor):
+    def onBroken(self, task, result, code=FAIL_PAGE):
+        logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
+        tbname = self.srcModel._meta.db_table
+        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'status':code})
+        pushInto(Article, {'id':task['id'], 'status':'BROKEN'}, ['id'])
+        return []
+    
     def registProcessor(self):
         self.processRoute['download'] = self.processDownload
 
@@ -522,7 +586,7 @@ class LinkDownloadProcessor(Processor):
             pdb.set_trace()
             logging.error(str(e))
         tbname = self.srcModel._meta.db_table
-        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'toLink':path})
+        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'toLink':path, 'status':SUCC_PAGE, 'source':task['sect'], 'srcId':task['id']})
 
 class ImageCollectProcessor(CrawlerProcessor):
     def processDetailPage(self, task, result):

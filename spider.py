@@ -16,11 +16,12 @@ REQUIRED = 10
     
 class Spider(Processor, Scheduler):
     configField = {'start_url':TYPE_STR+REQUIRED, 'path_map':TYPE_JSON+REQUIRED, 'headers':TYPE_JSON,
-                   'link_format':TYPE_STR, 'dynamic':TYPE_BOOL, 'update':TYPE_BOOL, 'post':TYPE_STR, 'js':TYPE_STR}
-    def __init__(self, configFile, theSect=None, interval=5):
+                   'link_format':TYPE_STR, 'dynamic':TYPE_BOOL, 'update':TYPE_BOOL, 'post':TYPE_STR, 'js':TYPE_STR, 'start_type':TYPE_STR}
+    def __init__(self, configFile, theSect=None, interval=5, con=5):
         self.configFile = configFile
         self.configs = {}
         self.theSect = theSect
+        self.con = 1.0/con
         Scheduler.__init__(self, interval)
         self.proxies = self.getProxy()
         self.loadConfig()
@@ -35,7 +36,10 @@ class Spider(Processor, Scheduler):
             task = self.makeTask(sect, url, post)
             self.putTask(task)
     def makeTask(self, sect, url, post):
-        return {'sect':sect, 'type':'list', 'url':url, 'post':post}
+        taskType = self.configs[sect]['start_type']
+        if not taskType:
+            taskType = 'list'
+        return {'sect':sect, 'type':taskType, 'url':url, 'post':post}
             
     def onFetch(self, task, cid):
         task['proxy'] = self.proxies[cid]
@@ -77,14 +81,13 @@ class Spider(Processor, Scheduler):
                 del threads[:]
             task = self.getTask(cid)
             if task == None:
-                gevent.sleep(20)
                 gevent.joinall(threads)
                 task = self.getTask(cid)
                 if task == None:
                     return
             now = time.time()
-            if now - lastTimestamp < 0.2:
-                gevent.sleep(now-lastTimestamp)
+            if now - lastTimestamp < self.con:
+                gevent.sleep(self.con-(now-lastTimestamp))
             lastTimestamp = now
             threads.append(gevent.spawn(self.processTask, task, cid))
             
