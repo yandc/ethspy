@@ -144,3 +144,4 @@ class ImageCollector(ImageCollectProcessor, Spider):
         return ['miayandc:miayandc@106.75.99.27:6234']
 
     
+class PriceCrawler(CsvProcessor, Spider):pass

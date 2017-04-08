@@ -4,7 +4,6 @@
 import imaplib
 from pyzmail import *
 from envelopes import Envelope
-import pdb
 
 class EmailUtil:
     def __init__(self, server ="", username="", password=""):
@@ -48,7 +47,6 @@ class EmailUtil:
             imap.select('INBOX')
             resp, items = imap.search(None, criterion)
             for i in items[0].split():
-                pdb.set_trace()
                 typ, content = imap.fetch(i, '(RFC822)')
                 msg = PyzMessage.factory(content[0][1])
                 imap.store(i, '+FLAGS', '\\seen')
@@ -71,8 +69,6 @@ class EmailUtil:
             print e
         return result
 
-if __name__ == "__main__":
-    mail = EmailUtil('sina.com', 'dataspy@sina.com', 'YDC21415926')
-    result = mail.recvEmail()
-    print result
+
+        
     

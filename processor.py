@@ -592,3 +592,33 @@ class ImageCollectProcessor(CrawlerProcessor):
     def processDetailPage(self, task, result):
         ele = result['element']
         pushInto(Links, {'source':task['sect'], 'link':ele['pics'][0]}, ['link'])
+
+
+class CsvProcessor(CrawlerProcessor):
+    def onBroken(self, task, result, code=FAIL_PAGE):
+        logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
+        if result['status'] == 404 or result['status'] == 500:
+            return []
+        else:
+            return self.makeRetryTask(task, 3)
+        
+    def processDetailPage(self, task, result):
+        sect = task['sect']
+        eles = result['element']
+        title = ''.join(eles['title']).replace(',', '，')
+        price = ''.join(eles['price']).replace(',', '').replace('￥','')
+        if not price:
+            return
+        kwds = [line.replace('\n','').replace('\r','') for line in open('config/keyword.csv')]
+        keyword = ''
+        for kwd in kwds:
+            q = urllib.quote(kwd)
+            if q in task['url'] or (task['post'] and q in task['post']):
+                keyword = kwd
+                break
+        keyword = keyword.replace(',','，')
+        output = '%s,%s,%s,%s,%s\r\n'%(price, title, keyword, time.strftime('%Y-%m-%d %H:%M:%S'), task['url'])
+        fp = open('data/result.csv', 'a')
+        fp.write(output.encode('gbk'))
+        fp.close()
+        logging.info('Get price from %s'%task['url'])
