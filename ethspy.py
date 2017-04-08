@@ -447,5 +447,5 @@ def getReport(path):
         resp = requests.get(url)
         return resp.json()
     except Exception, e:
-        logging.error('Get report error:%s'%str(e))
+        logging.error('Get report error')
         return []
