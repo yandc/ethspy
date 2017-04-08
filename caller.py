@@ -5,6 +5,7 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 from crawler import *
 from patcher import *
+from office import *
 import time
 reload(logging)
 
