@@ -617,7 +617,7 @@ class CsvProcessor(CrawlerProcessor):
                 keyword = kwd
                 break
         keyword = keyword.replace(',','，')
-        output = '%s,%s,%s,%s,%s\r\n'%(price, title, keyword, time.strftime('%Y-%m-%d %H:%M:%S'), task['url'])
+        output = '%s,%s,%s,%s,%s\r\n'%(task['sect'], price, title, keyword, time.strftime('%Y-%m-%d %H:%M:%S'))
         fp = open('data/result.csv', 'a')
         fp.write(output.encode('gbk'))
         fp.close()
