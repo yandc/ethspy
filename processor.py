@@ -460,7 +460,14 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'weibo:宝宝衣物穿搭日志':{'catgy':u'童装童鞋', 'keyword':u''},
         u'weibo:i潮童':{'catgy':u'童装童鞋', 'keyword':u''},
         u'55bbs:【丽人妆颜】':{'catgy':u'美妆护肤', 'keyword':u'论坛帖子'},
-        u'55bbs:【孕宝亲子】':{'catgy':u'孕宝亲子', 'keyword':u'论坛帖子'}
+        u'55bbs:【孕宝亲子】':{'catgy':u'孕宝亲子', 'keyword':u'论坛帖子'},
+        u'meishai:晒护肤':{'catgy':u'美妆护肤', 'keyword':u'晒护肤'},
+        u'meishai:晒彩妆':{'catgy':u'彩妆', 'keyword':u'晒彩妆'},
+        u'meishai:晒服装':{'catgy':u'时尚穿搭', 'keyword':u'晒服装'},
+        u'meishai:晒鞋子':{'catgy':u'美妆护肤', 'keyword':u'晒鞋子'},
+        u'meishai:晒包包':{'catgy':u'美妆护肤', 'keyword':u'晒包包'},
+        u'meishai:晒配饰':{'catgy':u'美妆护肤', 'keyword':u'晒配饰'},
+        u'meishai:晒家居日用':{'catgy':u'家居生活', 'keyword':u'晒家居日用'}
     }
     def registProcessor(self):
         CrawlerProcessor.registProcessor(self)
@@ -507,6 +514,17 @@ class MiaArticleProcessor(CrawlerProcessor):
         elif task['type'] == 'detail':
             CrawlerProcessor.beforeProcess(self, task, result)
         return True
+    def onBroken(self, task, result, code=FAIL_PAGE):
+        logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
+        self.monitor.error(task, result, code)
+        if result['status'] == 404 or result['status'] == 500:
+            spyError(task['url'])
+            return []
+        elif code == EMPTY_LIST:
+            return []
+        else:
+            return self.makeRetryTask(task, 3)
+        
     def processDetailPage(self, task, result):
         ele = result['element']
         sect = task['sect']
@@ -567,7 +585,7 @@ class LinkDownloadProcessor(Processor):
     def onBroken(self, task, result, code=FAIL_PAGE):
         logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
         tbname = self.srcModel._meta.db_table
-        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'status':code})
+        pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'status':code, 'source':task['sect'], 'srcId':task['id']})
         pushInto(Article, {'id':task['id'], 'status':'BROKEN'}, ['id'])
         return []
     
@@ -588,10 +606,35 @@ class LinkDownloadProcessor(Processor):
         tbname = self.srcModel._meta.db_table
         pushInto(LinkMap, {'type':tbname, 'fromLink':task['url'], 'toLink':path, 'status':SUCC_PAGE, 'source':task['sect'], 'srcId':task['id']})
 
-class ImageCollectProcessor(CrawlerProcessor):
+class AvatarProcessor(CrawlerProcessor):
+    context = {
+        '/528576/':u'母婴综合',
+        '/586674/':u'综合',
+        '/10036/':u'美妆护肤',
+        '/Appearance/':u'时尚穿搭',
+        '/chaneldior/':u'美妆护肤',
+        '/204251/':u'美妆护肤',
+        '/blackeye/':u'母婴综合'
+    }
     def processDetailPage(self, task, result):
         ele = result['element']
-        pushInto(Links, {'source':task['sect'], 'link':ele['pics'][0]}, ['link'])
+        pic = ele['pic'][0]
+        if not pic or 'user_normal' in pic:
+            return
+        idx = pic.rfind('/') + 2
+        pic = pic[:idx] + 'l' + pic[idx:]
+        try:
+            mdl = Avatar.select().where(Avatar.pic==pic).get()
+            return
+        except:
+            pass
+        name = obj2string(ele['name'])
+        catgy = ''
+        for key in self.context:
+            if key in task['url']:
+                catgy = self.context[key]
+                break
+        pushInto(Avatar, {'source':task['sect'], 'pic':pic, 'name':name, 'catgy':catgy})
 
 
 class CsvProcessor(CrawlerProcessor):
@@ -606,7 +649,7 @@ class CsvProcessor(CrawlerProcessor):
         sect = task['sect']
         eles = result['element']
         title = ''.join(eles['title']).replace(',', '，')
-        price = ''.join(eles['price']).replace(',', '').replace('￥','')
+        price = ''.join(eles['price']).replace(',', '').replace('￥','').replace('¥', '')
         if not price:
             return
         kwds = [line.replace('\n','').replace('\r','') for line in open('config/keyword.csv')]

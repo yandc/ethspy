@@ -13,7 +13,7 @@ TYPE_STR = 1
 TYPE_JSON = 2
 TYPE_BOOL = 3
 REQUIRED = 10
-GEVENT_TIMEOUT = 60
+GEVENT_TIMEOUT = 300
 
 class Spider(Processor, Scheduler):
     configField = {'start_url':TYPE_STR+REQUIRED, 'path_map':TYPE_JSON+REQUIRED, 'headers':TYPE_JSON,
@@ -78,11 +78,11 @@ class Spider(Processor, Scheduler):
         lastTimestamp = 0
         while True:
             if len(threads) == 100:#sweep dead body
-                gevent.joinall(threads, timeout=GEVENT_TIMEOUT)
+                gevent.joinall(threads)
                 del threads[:]
             task = self.getTask(cid)
             if task == None:
-                gevent.joinall(threads, timeout=GEVENT_TIMEOUT)
+                gevent.joinall(threads)
                 task = self.getTask(cid)
                 if task == None:
                     return
@@ -135,7 +135,7 @@ class Spider(Processor, Scheduler):
             self.onStart()
             for cid in range(len(self.proxies)):
                 threads.append(gevent.spawn(self.runner, cid))
-            gevent.joinall(threads, timeout=GEVENT_TIMEOUT)
+            gevent.joinall(threads)
             if self.onFinish() == True:
                 self.monitor.clean()
                 break

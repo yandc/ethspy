@@ -140,7 +140,7 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
             suffix = 'jpg'
             if idx > 0:
                 suffix = pic[max(idx, idx2)+1:]
-            path = '/data/%s/%s/'%(self.srcModel._meta.db_table, str(row.creationTime)[:10])
+            path = '/opt/data/%s/%s/'%(self.srcModel._meta.db_table, str(row.creationTime)[:10])
             name = '%s-%s.%s'%(row.id, count, suffix)
             if os.path.exists(path+name):
                 continue
@@ -155,16 +155,20 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
         return False
     
 class AvatarDownloader(LinkDownloader):
-    srcModel = Links
+    srcModel = Avatar
+    def loadData(self):
+        srcModel = self.srcModel
+        return srcModel.select().where(srcModel.id>self.checkPoint).order_by(srcModel.id).limit(self.batchSize)
+    
     def makeTask(self, row):
         tasks = []
-        idx = row.link.rfind('.')
+        idx = row.pic.rfind('.')
         suffix = ''
         if idx > 0:
-            suffix = row.link[idx+1:]
-        path = '/data/%s/'%(self.srcModel._meta.db_table)
+            suffix = row.pic[idx+1:]
+        path = '/opt/data/%s/'%(self.srcModel._meta.db_table)
         name = '%s.%s'%(row.id, suffix)
         if os.path.exists(path+name):
             return tasks
-        tasks.append({'sect':row.source, 'type':'download', 'url':row.link, 'path':path, 'name':name})
+        tasks.append({'sect':row.source, 'type':'download', 'url':row.pic, 'path':path, 'name':name, 'id':row.id})
         return tasks

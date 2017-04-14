@@ -139,9 +139,9 @@ class MiaArticleCrawler(MiaArticleProcessor, Spider):
     def getProxy(self):
         return ['H203003O85OWU77D:2E8751BD559CCC72@proxy.abuyun.com:9020']
 
-class ImageCollector(ImageCollectProcessor, Spider):
+class AvatarCollector(AvatarProcessor, Spider):
     def getProxy(self):
-        return ['miayandc:miayandc@106.75.99.27:6234']
+        return ['', 'miayandc:miayandc@106.75.99.27:6234']
 
     
 class PriceCrawler(CsvProcessor, Spider):pass
