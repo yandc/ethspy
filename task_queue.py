@@ -7,7 +7,7 @@ import random
 
 class TaskQueue():
     def __init__(self, interval=5):
-        self.taskQueue = gevent.queue.Queue()
+        self.taskQueue = gevent.queue.LifoQueue()
         self.interval = interval
         self.lastGetTime = {}
         self.lastAccessTime = 0

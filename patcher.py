@@ -97,7 +97,7 @@ class LagouPatcher(LagouProcessor, LeadsPatcher):pass
 
 class LinkDownloader(LinkDownloadProcessor, Patcher):
     srcModel = Article
-    batchSize = 30
+    batchSize = 50
     def getProxy(self):
         return ['', 'miayandc:miayandc@106.75.99.27:6234']
     
@@ -115,10 +115,7 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
     def makeTask(self, row):
         tasks = []
         try:
-            if row.absentPics:
-                pics = json.loads(row.absentPics)
-            else:
-                pics = json.loads(row.pics)
+            pics = json.loads(row.pics)
         except Exception, e:
             logging.error(str(e))
             return tasks
@@ -142,10 +139,10 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
                 suffix = pic[max(idx, idx2)+1:]
             path = '/opt/data/%s/%s/'%(self.srcModel._meta.db_table, str(row.creationTime)[:10])
             name = '%s-%s.%s'%(row.id, count, suffix)
-            if os.path.exists(path+name):
-                continue
             task = {'sect':row.source, 'type':'download', 'url':pic, 'path':path, 'name':name, 'id':row.id}
             tasks.append(task)
+        row.status = 'DOWNLOAD'
+        row.save()
         return tasks
 
     def onFinish(self):

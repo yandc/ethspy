@@ -243,6 +243,9 @@ def urlPoller(configs, interval=10):
 
 def extractElement(html, path_map):
     elements = []
+    if '_before' in path_map:
+        action = 'html = html.'+path_map.pop('_before')
+        exec(action)
     if type(path_map) != dict or 'path_type' not in path_map or path_map['path_type'] == 'xpath':
         dom = etree.HTML(html)
         elements = getElementByXpathMap(dom, path_map)
@@ -283,18 +286,21 @@ def extractElement(html, path_map):
 
 def getContent(html):
     #find charset
-    doms = etree.HTML(html).xpath('//meta')
-    meta = ''
-    for dom in doms:
-        meta += etree.tostring(dom)
     charset = 'utf-8'
-    idx = meta.find('charset=')
-    if idx > 0:
-        idx2 =  meta[idx:].find('>')
-        s = meta[idx:idx+idx2].lower()
-        if s.find('utf') < 0:
-            if s.find('gb') > 0:
-                charset = 'gbk'
+    try:
+        doms = etree.HTML(html).xpath('//meta')
+        meta = ''
+        for dom in doms:
+            meta += etree.tostring(dom)
+        idx = meta.find('charset=')
+        if idx > 0:
+            idx2 =  meta[idx:].find('>')
+            s = meta[idx:idx+idx2].lower()
+            if s.find('utf') < 0:
+                if s.find('gb') > 0:
+                    charset = 'gbk'
+    except:
+        pass
     try:
         html = html.decode(charset)
     except:
@@ -330,7 +336,7 @@ def fetch(url, proxy='', header=None, post=None, dynamic=False, js='', timeout=3
             result['url'] = obj['url']
         else:
             request = session.get
-            kwargs = {'headers':header_tmp}
+            kwargs = {'headers':header_tmp, 'timeout':timeout}
             if post != None:
                 request = session.post
                 if type(post) == dict:

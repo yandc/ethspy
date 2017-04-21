@@ -80,15 +80,25 @@ class CrawlerProcessor(Processor):
 
             for link in ele['link']:
                 link = str(link)
+                post = None
                 if len(config['link_format']) > 0:
                     link = config['link_format']%(link)
-                elif link.lower().find('http') != 0:
-                    net = urlparse(url)
-                    link = net[0] + '://' + net[1] + link
+                elif link[:4].lower() != 'http':
+                    net0 = 'http'
+                    net = urlparse(link)
+                    net1 = net[1]
+                    if not net1:
+                        net1 = urlparse(url)[1]
+                    link = net0 + '://' + net1 + ''.join(net[2:])
                 link = link.replace('https://', 'http://')
+                post = None
+                part = link.split(';+post=')
+                if len(part) > 1:
+                    link = part[0]
+                    post = part[1]
                 if config['update'] == False and UrlIsExist(link):
                     continue
-                tasks.append({'sect':sect, 'type':'detail', 'url':link, 'post':None, 'ele':ele})
+                tasks.append({'sect':sect, 'type':'detail', 'url':link, 'post':post, 'ele':ele})
         return tasks
             
     def processDetailPage(self, task, result):
@@ -459,6 +469,8 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'weibo:做衣服的酱妈':{'catgy':u'童装童鞋', 'keyword':u''},
         u'weibo:宝宝衣物穿搭日志':{'catgy':u'童装童鞋', 'keyword':u''},
         u'weibo:i潮童':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:因淘优品':{'catgy':u'母婴综合', 'keyword':u''},
+        u'weibo:Cemarose':{'catgy':u'童装童鞋', 'keyword':u''},
         u'55bbs:【丽人妆颜】':{'catgy':u'美妆护肤', 'keyword':u'论坛帖子'},
         u'55bbs:【孕宝亲子】':{'catgy':u'孕宝亲子', 'keyword':u'论坛帖子'},
         u'meishai:晒护肤':{'catgy':u'美妆护肤', 'keyword':u'晒护肤'},
@@ -467,7 +479,32 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'meishai:晒鞋子':{'catgy':u'美妆护肤', 'keyword':u'晒鞋子'},
         u'meishai:晒包包':{'catgy':u'美妆护肤', 'keyword':u'晒包包'},
         u'meishai:晒配饰':{'catgy':u'美妆护肤', 'keyword':u'晒配饰'},
-        u'meishai:晒家居日用':{'catgy':u'家居生活', 'keyword':u'晒家居日用'}
+        u'meishai:晒家居日用':{'catgy':u'家居生活', 'keyword':u'晒家居日用'},
+        u'yidoutang:全屋记':{'catgy':u'家居生活', 'keyword':u'全屋记'},
+        u'yidoutang:达人悦':{'catgy':u'家居生活', 'keyword':u'达人悦'},
+        u't100':{'catgy':u'童装童鞋', 'keyword':u'童装'},
+        u'cloudokids:婴儿':{'catgy':u'童装童鞋', 'keyword':u'婴儿'},
+        u'cloudokids:女孩':{'catgy':u'童装童鞋', 'keyword':u'女孩'},
+        u'cloudokids:男孩':{'catgy':u'童装童鞋', 'keyword':u'男孩'},
+        u'cloudokids:童鞋':{'catgy':u'童装童鞋', 'keyword':u'童鞋'},
+        u'cloudokids:玩具&礼物':{'catgy':u'童装童鞋', 'keyword':u'玩具-礼物'},
+        u'xiaohongshu:童装':{'catgy':u'童装童鞋', 'keyword':u'童装'},
+        u'zintao:晒物':{'catgy':u'综合', 'keyword':u'晒物'},
+        u'zintao:乐活':{'catgy':u'家居生活', 'keyword':u'乐活'},
+        u'zintao:育儿':{'catgy':u'母婴综合', 'keyword':u'育儿'},
+        u'zintao:辣妈厨房':{'catgy':u'家居生活', 'keyword':u'辣妈厨房'},
+        u'zintao:其他':{'catgy':u'综合', 'keyword':u'其他'},
+        u'pcbaby:辅食评测':{'catgy':u'宝宝食品', 'keyword':u'辅食评测'},
+        u'pcbaby:日用品评测':{'catgy':u'宝宝食品', 'keyword':u'日用品评测'},
+        u'sougou:玩具清单':{'catgy':u'宝宝玩具', 'keyword':u'玩具清单'},
+        u'sougou:宝宝餐具评测':{'catgy':u'宝宝喂养', 'keyword':u'宝宝餐具评测'},
+        u'sougou:宝宝奶瓶评测':{'catgy':u'宝宝喂养', 'keyword':u'宝宝奶瓶评测'},
+        u'sougou:宝宝辅食':{'catgy':u'宝宝辅食', 'keyword':u'宝宝辅食'},
+        u'sougou:玩具辅食评测':{'catgy':u'宝宝食品', 'keyword':u'宝宝辅食评测'},
+        u'sougou:绘本推荐':{'catgy':u'宝宝绘本', 'keyword':u'绘本推荐'},
+        u'sougou:玩具推荐':{'catgy':u'宝宝玩具', 'keyword':u'玩具推荐'},
+        u'sougou:儿童玩具评测':{'catgy':u'宝宝玩具', 'keyword':u'儿童玩具评测'},
+        u'sougou:宝宝零食推荐':{'catgy':u'宝宝食品', 'keyword':u'宝宝零食推荐'}
     }
     def registProcessor(self):
         CrawlerProcessor.registProcessor(self)
@@ -511,9 +548,22 @@ class MiaArticleProcessor(CrawlerProcessor):
                 idx = link2.rfind('-')
                 uid = link2[idx+1:][:-5]
                 ele['link'] = ['http://bbs.55bbs.com/viewthread.php?tid=%s&page=1&authorid=%s'%(tid, uid)]
+        elif sect == 'zintao' and task['type'] == 'list':
+            for ele in eles:
+                pics = []
+                for pic in ele['pics']:
+                    pics.append('http://image.zintao.com/Attachment/'+pic)
+                ele['pics'] = pics
+        elif sect == 'pcbaby' and task['type'] == 'list':
+            for ele in eles:
+                links = []
+                for link in ele['link']:
+                    links.append(link[:-5]+'_all.html')
+                ele['link'] = links
         elif task['type'] == 'detail':
             CrawlerProcessor.beforeProcess(self, task, result)
         return True
+    
     def onBroken(self, task, result, code=FAIL_PAGE):
         logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
         self.monitor.error(task, result, code)
@@ -538,13 +588,30 @@ class MiaArticleProcessor(CrawlerProcessor):
             if 'source' in ele:
                 ele['source'] = sect+':'+obj2string(ele['source'])
             else:
-                ele['source'] = sect
+                ele['source'] = sect.decode()
             if 'title' in ele:
-                ele['title'] = obj2string(ele['title'])
-                logging.info('Get article %s'%ele['title'])
+                logging.info('Get article %s'%''.join(ele['title']))
+                ele['title'] = json.dumps(','.join(ele['title']))
             if 'tag' in ele:
                 ele['tag'] = obj2string(ele['tag'])
-            ele['text'] = obj2string(ele['text'])
+            #emoji char truncated, and mysql 5.1=>5.5 Fail, SB
+            if 'text' in ele:
+                ele['text'] = json.dumps(ele['text'])
+            if sect[:5] == 'weibo':
+                imgs = []
+                for pic in ele['pics']:
+                    idx1 = pic.rfind('/')
+                    idx2 = pic[:idx1].rfind('/')
+                    pic = pic[:idx2]+'/mw690'+pic[idx1:]
+                    imgs.append(pic)
+                ele['pics'] = imgs
+            elif sect[:4] == 't100':
+                imgs = []
+                for pic in ele['pics']:
+                    idx = pic.rfind('_')
+                    pic = pic[:idx]
+                    imgs.append(pic)
+                ele['pics'] = imgs
             ele['pics'] = json.dumps(ele['pics'])
             ele['srcId'] = obj2string(ele['srcId'])
             if 'brand' in ele:
