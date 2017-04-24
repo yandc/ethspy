@@ -99,7 +99,7 @@ class LinkDownloader(LinkDownloadProcessor, Patcher):
     srcModel = Article
     batchSize = 50
     def getProxy(self):
-        return ['', 'miayandc:miayandc@106.75.99.27:6234']
+        return ['']
     
     def saveCheckpoint(self):
         key = 'Patcher:%s:Checkpoint'%self.__class__.__name__

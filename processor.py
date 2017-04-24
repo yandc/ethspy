@@ -628,13 +628,14 @@ class MiaArticleProcessor(CrawlerProcessor):
 
     def afterProcess(self, task, result):
         tasks = []
-        if task['sect'] == 'xiaohongshu' and len(result['element']) > 0:
+        if task['sect'][:11] == 'xiaohongshu' and len(result['element']) > 0:
             ele = result['element']
             url = task['url']
             idx = url.find('&oid')
             url = '%s&start=%s&num=40%s'%(url[:idx], ele[-1]['srcId'][0], url[idx:])
             task['url'] = url
-        if task['sect'] == 'wx' and task['type'] == 'list':
+            tasks.append(task)
+        elif task['sect'] == 'wx' and task['type'] == 'list':
             listLength = 12
             if len(result['element']) < listLength:
                 return tasks

@@ -17,7 +17,7 @@ GEVENT_TIMEOUT = 300
 
 class Spider(Processor, Scheduler):
     configField = {'start_url':TYPE_STR+REQUIRED, 'path_map':TYPE_JSON+REQUIRED, 'headers':TYPE_JSON,
-                   'link_format':TYPE_STR, 'dynamic':TYPE_BOOL, 'update':TYPE_BOOL, 'post':TYPE_STR, 'js':TYPE_STR, 'start_type':TYPE_STR}
+                   'link_format':TYPE_STR, 'dynamic':TYPE_STR, 'update':TYPE_BOOL, 'post':TYPE_STR, 'js':TYPE_STR, 'start_type':TYPE_STR}
     def __init__(self, configFile, theSect=None, interval=5, con=5):
         self.configFile = configFile
         self.configs = {}
@@ -54,7 +54,10 @@ class Spider(Processor, Scheduler):
                 header.update(task['header'])
             if task['post'] == '':
                 task['post'] = None
-            result = fetch(task['url'], self.proxies[cid], header, task['post'], dynamic=config['dynamic'], js=config['js'])
+            dynamic = False
+            if task['type'] in config['dynamic']:
+                dynamic = True
+            result = fetch(task['url'], self.proxies[cid], header, task['post'], dynamic=dynamic, js=config['js'])
             if result['status'] == 200:
                 result['element'] = extractElement(result['content'], config['path_map'][task['type']])
             else:
