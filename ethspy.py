@@ -191,7 +191,10 @@ def findMatchBracket(s, idx):
                 return idx - i
         i += 1
     return -1
-            
+
+def quote(text):
+    return urllib.quote(text)
+
 def urlEngine(startUrl):
     left = startUrl.find('[')
     if left < 0:
@@ -244,8 +247,8 @@ def urlPoller(configs, interval=10):
 def extractElement(html, path_map):
     elements = []
     if '_before' in path_map:
-        action = 'html = html.'+path_map.pop('_before')
-        exec(action)
+        exec('fn = %s'%path_map.pop('_before'))
+        html = fn(html)
     if type(path_map) != dict or 'path_type' not in path_map or path_map['path_type'] == 'xpath':
         dom = etree.HTML(html)
         elements = getElementByXpathMap(dom, path_map)
@@ -279,7 +282,7 @@ def extractElement(html, path_map):
                     elements.update(eles)
                 elif type(eles) == list:
                     if key:
-                        elements['key'] = eles
+                        elements[key] = eles
                     else:
                         elements = eles
     return elements

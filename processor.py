@@ -236,7 +236,7 @@ class CsvProcessor(CrawlerProcessor):
         eles = result['element']
         sect = task['sect']
         url = task['url']
-        fp = open(sect+'.csv', 'a')
+        fp = open('data/'+sect+'.csv', 'a')
         output = ''
         for key, value in eles.iteritems():
             output += obj2string(value) + ','
@@ -445,6 +445,22 @@ class MiaArticleProcessor(CrawlerProcessor):
         'ymatou':{'catgy':u'全球代购', 'keyword':u'全部'},
         'dealmoon':{'catgy':u'全球代购', 'keyword':u'全部'},
         'wx':{'catgy':u'时尚穿搭护肤美妆', 'keyword':u''},
+        u'wx:时尚旅游':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:gogoboi':{'catgy':u'时尚穿搭', 'keyword':u'公众号'},
+        u'wx:置爱':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:时尚家居':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:悦己SELF':{'catgy':u'时尚穿搭', 'keyword':u'公众号'},
+        u'wx:时尚健康':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:深夜种草':{'catgy':u'美妆护肤', 'keyword':u'公众号'},
+        u'wx:在家ZAIJIA':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:原来是西门大嫂':{'catgy':u'海淘综合', 'keyword':u'公众号'},
+        u'wx:文怡家常菜':{'catgy':u'家居生活', 'keyword':u'公众号'},
+        u'wx:宝宝餐餐见':{'catgy':u'宝宝喂养', 'keyword':u'公众号'},
+        u'wx:剁手公主':{'catgy':u'美妆护肤', 'keyword':u'公众号'},
+        u'wx:年糕妈妈':{'catgy':u'母婴综合', 'keyword':u'公众号'},
+        u'wx:健康与美容':{'catgy':u'美妆护肤', 'keyword':u'公众号'},
+        u'wx:日本淘':{'catgy':u'美妆护肤', 'keyword':u'公众号'},
+        u'wx:女神进化论':{'catgy':u'美妆护肤', 'keyword':u'公众号'},
         u'weibo:种草囤货少女':{'catgy':u'美妆护肤', 'keyword':u'美妆'},
         u'weibo:北美省钱快报':{'catgy':u'全球代购', 'keyword':u'综合'},
         u'weibo:我是种草囤货菌':{'catgy':u'综合', 'keyword':u'综合'},
@@ -471,6 +487,8 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'weibo:i潮童':{'catgy':u'童装童鞋', 'keyword':u''},
         u'weibo:因淘优品':{'catgy':u'母婴综合', 'keyword':u''},
         u'weibo:Cemarose':{'catgy':u'童装童鞋', 'keyword':u''},
+        u'weibo:爱上创意家居':{'catgy':u'家居生活', 'keyword':u''},
+        u'weibo:DIY设计我的家':{'catgy':u'家居生活', 'keyword':u''},
         u'55bbs:【丽人妆颜】':{'catgy':u'美妆护肤', 'keyword':u'论坛帖子'},
         u'55bbs:【孕宝亲子】':{'catgy':u'孕宝亲子', 'keyword':u'论坛帖子'},
         u'meishai:晒护肤':{'catgy':u'美妆护肤', 'keyword':u'晒护肤'},
@@ -504,7 +522,16 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'sougou:绘本推荐':{'catgy':u'宝宝绘本', 'keyword':u'绘本推荐'},
         u'sougou:玩具推荐':{'catgy':u'宝宝玩具', 'keyword':u'玩具推荐'},
         u'sougou:儿童玩具评测':{'catgy':u'宝宝玩具', 'keyword':u'儿童玩具评测'},
-        u'sougou:宝宝零食推荐':{'catgy':u'宝宝食品', 'keyword':u'宝宝零食推荐'}
+        u'sougou:宝宝零食推荐':{'catgy':u'宝宝食品', 'keyword':u'宝宝零食推荐'},
+        u'sougou:宝宝零食推荐':{'catgy':u'宝宝食品', 'keyword':u'宝宝零食推荐'},
+        u'nggirl':{'catgy':u'美妆护肤', 'keyword':u'南瓜姑娘'},
+        u'app887':{'catgy':u'美妆护肤', 'keyword':u'化妆技巧'},
+        u'zhefengle':{'catgy':u'海淘综合', 'keyword':u'菌团-精选'},
+        u'diywoju':{'catgy':u'家居生活', 'keyword':u'蜗居创意家居生活馆'},
+        u'mglife':{'catgy':u'家居生活', 'keyword':u'家居生活'},
+        u'lofter':{'catgy':u'化妆护肤', 'keyword':u'好物分享笔记'},
+        u'truebuty':{'catgy':u'美妆', 'keyword':u'真魅博客'},
+        u'diaox2':{'catgy':u'家居生活', 'keyword':u'有调'}
     }
     def registProcessor(self):
         CrawlerProcessor.registProcessor(self)
@@ -513,18 +540,36 @@ class MiaArticleProcessor(CrawlerProcessor):
 
     def processList1Page(self, task, result):
         tasks = self.processListPage(task, result)
-        for task in tasks:
-            task['url'] += '1_1.html'
-            task['type'] = 'list2'
-            del task['ele']
+        for tk in tasks:
+            if task['sect'][:6] == 'pclady':
+                prefix = 'http://cosme.pclady.com.cn/product/'
+                pid = tk['url'][len(prefix):-5]
+                if 'page' not in tk:
+                    tk['page'] = 1
+                if 'pid' not in tk:
+                    tk['pid'] = pid
+                if 'urlFormat' not in tk:
+                    tk['urlFormat'] = 'http://cosme.pclady.com.cn/common/2013/solr_comment_list.jsp?&pageType=1&id=%s&status=2&type=4&pageNum=%s'
+                tk['url'] = tk['urlFormat']%(pid, tk['page'])
+                tk['type'] = 'list2'
+            else:
+                tk['url'] += '1_1.html'
+                tk['type'] = 'list2'
+                del tk['ele']
         return tasks
     
     def processList2Page(self, task, result):
         tasks = self.processListPage(task, result)
-        for task in tasks:
-            task['type'] = 'list'
-            task['url'] += '1/1/'
-            del task['ele']
+        for tk in tasks:
+            if task['sect'][:6] == 'pclady':
+                if len(tasks) == 10:
+                    task['page'] += 1
+                    task['url'] = task['urlFormat']%(task['pid'], task['page'])
+                    tasks.append(task)
+            else:
+                tk['type'] = 'list'
+                tk['url'] += '1/1/'
+                del tk['ele']
         return tasks
     
     def beforeProcess(self, task, result):
@@ -560,6 +605,24 @@ class MiaArticleProcessor(CrawlerProcessor):
                 for link in ele['link']:
                     links.append(link[:-5]+'_all.html')
                 ele['link'] = links
+        elif sect == 'ikea' and task['type'] == 'detail':
+            for i, pic in enumerate(eles['pics']):
+                eles['pics'][i] = 'http://www.ikea.com'+pic
+        elif sect == 'xiachufang' and task['type'] == 'detail':
+            for i, pic in enumerate(eles['pics']):
+                idx = pic.find('.jpg')
+                if idx > 0:
+                    eles['pics'][i] = pic[:idx+4]
+        elif sect == 'nggirl' and task['type'] == 'detail':
+            textli = []
+            picli = []
+            for i, ele in enumerate(eles['pics']):
+                if ele.find('http') == 0:
+                    picli.append(ele)
+                if eles['text'][i].find('http') != 0:
+                    textli.append(eles['text'][i])
+            eles['pics'] = picli
+            eles['text'] = textli
         elif task['type'] == 'detail':
             CrawlerProcessor.beforeProcess(self, task, result)
         return True
@@ -579,6 +642,8 @@ class MiaArticleProcessor(CrawlerProcessor):
         ele = result['element']
         sect = task['sect']
         config = self.configs[sect]
+        if 'srcId' not in ele:
+            ele['srcId'] = task['url']
         fakeUrl = sect+'//'+obj2string(ele['srcId'])
         if sect == 'wx':
             if len(ele['title']) == 0 or len(ele['pics']) == 0:
@@ -628,6 +693,12 @@ class MiaArticleProcessor(CrawlerProcessor):
 
     def afterProcess(self, task, result):
         tasks = []
+        if 'page' not in task:
+            task['page'] = 0
+        task['page'] += 1
+        if task['page'] > 10:
+            return tasks
+
         if task['sect'][:11] == 'xiaohongshu' and len(result['element']) > 0:
             ele = result['element']
             url = task['url']
@@ -705,7 +776,7 @@ class AvatarProcessor(CrawlerProcessor):
         pushInto(Avatar, {'source':task['sect'], 'pic':pic, 'name':name, 'catgy':catgy})
 
 
-class CsvProcessor(CrawlerProcessor):
+class PriceProcessor(CrawlerProcessor):
     def onBroken(self, task, result, code=FAIL_PAGE):
         logging.info('%s:(%s) %s'%(code, result['status'], task['url']))
         if result['status'] == 404 or result['status'] == 500:
@@ -733,3 +804,31 @@ class CsvProcessor(CrawlerProcessor):
         fp.write(output.encode('gbk'))
         fp.close()
         logging.info('Get price from %s'%task['url'])
+
+class FlowswapProcessor(CrawlerProcessor):
+    def processListPage(self, task, result):
+        timeStr = time.strftime('%H:%M')
+        freqZone = [('10:00','11:00', 1), ('15:30','16:30', 1)]
+        hit = False
+        for tzone, freq in freqZone:
+            if timeStr > tzone[0] and timeStr < tzone[1]:
+                hit = True
+                time.sleep(freq)
+                break
+        if not hit:
+            time.sleep(20)
+        if 'flowCount' not in task:
+            task['flowCount'] = 0
+        task['flowCount'] += 1
+        if task['flowCount'] % 100 == 0:
+            logging.info('Flow swap count %s'%task['flowCount'])
+        return task
+            
+class ReportProcessor(CsvProcessor):
+    def beforeProcess(self, task, result):
+        eles = result['element']
+        for ele in eles:
+            ts = int(ele['time'][0])/1000
+            dt = datetime.datetime.fromtimestamp(ts)
+            ele['time'][0] = dt.strftime('%Y-%m-%d')
+            ele['path'][0] = 'http://www.cninfo.com.cn/'+ele['path'][0]
