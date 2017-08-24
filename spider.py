@@ -52,8 +52,8 @@ class Spider(Processor, Scheduler):
             header = config['headers'].copy()
             if 'header' in task:
                 header.update(task['header'])
-            if task['post'] == '':
-                task['post'] = None
+            #if task['post'] == '':
+            #    task['post'] = None
             dynamic = False
             if task['type'] in config['dynamic']:
                 dynamic = True

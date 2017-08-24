@@ -160,9 +160,10 @@ class LeadsProcessor(CrawlerProcessor):
             if len(ele['bplink']) > 0:
                 bplink = ele['bplink'][0]
                 result = fetch(bplink, None)
-                if result['content'] != None and len(result['content']) > 0:
+                content = result['content']
+                if content:
                     fp = open(path, 'w')
-                    fp.write(html)
+                    fp.write(content)
                     fp.close()
 
 
@@ -531,7 +532,7 @@ class MiaArticleProcessor(CrawlerProcessor):
         u'mglife':{'catgy':u'家居生活', 'keyword':u'家居生活'},
         u'lofter':{'catgy':u'化妆护肤', 'keyword':u'好物分享笔记'},
         u'truebuty':{'catgy':u'美妆', 'keyword':u'真魅博客'},
-        u'diaox2':{'catgy':u'家居生活', 'keyword':u'有调'}
+        u'diaox2':{'catgy':u'家居生活', 'keyword':u'有调'},
     }
     def registProcessor(self):
         CrawlerProcessor.registProcessor(self)
@@ -623,6 +624,9 @@ class MiaArticleProcessor(CrawlerProcessor):
                     textli.append(eles['text'][i])
             eles['pics'] = picli
             eles['text'] = textli
+        elif sect == 'smzdm' and task['type'] == 'detail':
+            for i, pic in enumerate(eles['pics']):
+                eles['pics'][i] = 'http:'+pic
         elif task['type'] == 'detail':
             CrawlerProcessor.beforeProcess(self, task, result)
         return True
@@ -655,7 +659,7 @@ class MiaArticleProcessor(CrawlerProcessor):
             else:
                 ele['source'] = sect.decode()
             if 'title' in ele:
-                logging.info('Get article %s'%''.join(ele['title']))
+                logging.info('Get article %s from %s'%(''.join(ele['title']), sect))
                 ele['title'] = json.dumps(','.join(ele['title']))
             if 'tag' in ele:
                 ele['tag'] = obj2string(ele['tag'])
@@ -693,20 +697,21 @@ class MiaArticleProcessor(CrawlerProcessor):
 
     def afterProcess(self, task, result):
         tasks = []
+        sect = task['sect']
         if 'page' not in task:
             task['page'] = 0
         task['page'] += 1
         if task['page'] > 10:
             return tasks
 
-        if task['sect'][:11] == 'xiaohongshu' and len(result['element']) > 0:
+        if sect[:11] == 'xiaohongshu' and len(result['element']) > 0:
             ele = result['element']
             url = task['url']
             idx = url.find('&oid')
             url = '%s&start=%s&num=40%s'%(url[:idx], ele[-1]['srcId'][0], url[idx:])
             task['url'] = url
             tasks.append(task)
-        elif task['sect'] == 'wx' and task['type'] == 'list':
+        elif sect == 'wx' and task['type'] == 'list':
             listLength = 12
             if len(result['element']) < listLength:
                 return tasks
@@ -714,10 +719,31 @@ class MiaArticleProcessor(CrawlerProcessor):
             if 'offset' not in task:
                 task['offset'] = 0
                 url += '?start=0'
-            task['offset'] += listLength
-            idx = url.rfind('=')
-            task['url'] = url[:idx+1] + str(task['offset'])
-            tasks.append(task)
+            if task['offset'] < 120:
+                task['offset'] += listLength
+                idx = url.rfind('=')
+                task['url'] = url[:idx+1] + str(task['offset'])
+                tasks.append(task)
+        elif sect == 'xinpinget' and task['type'] == 'list':
+            if result['element']:
+                lastId = result['element'][-1]['srcId'][0]
+                url = self.configs[sect]['start_url']+'&lastId='+lastId
+                task['url'] = url
+                tasks.append(task)
+        elif sect == 'smzdm' and task['type'] == 'list':
+            if result['element']:
+                ts = result['element'][-1]['ts'][0]
+                idx1 = task['url'].find('timesort=')
+                idx2 = task['url'][idx1:].find('&')
+                url = task['url'][:idx1]+'timesort='+str(ts)+task['url'][idx1+idx2:]
+                task['url'] = url
+                tasks.append(task)
+        elif sect == 'bbtkids' and task['type'] == 'list':
+            if result['element']:
+                sid = result['element'][-1]['sortId'][0]
+                url = self.configs[sect]['start_url']+'?num=20&boundaryId='+sid
+                task['url'] = url
+                tasks.append(task)
         return tasks
 
 class LinkDownloadProcessor(Processor):
@@ -832,3 +858,65 @@ class ReportProcessor(CsvProcessor):
             dt = datetime.datetime.fromtimestamp(ts)
             ele['time'][0] = dt.strftime('%Y-%m-%d')
             ele['path'][0] = 'http://www.cninfo.com.cn/'+ele['path'][0]
+
+class KnowledgeProcessor(CrawlerProcessor):
+    def registProcessor(self):
+        CrawlerProcessor.registProcessor(self)
+        self.processRoute['list1'] = self.processList1Page
+
+    def beforeProcess(self, task, result):
+        if task['type'] == 'list' and task['sect'] == 'babytree':
+            if 'ele' in task:
+                del task['ele']
+        CrawlerProcessor.beforeProcess(self, task, result)
+    def processList1Page(self, task, result):
+        tasks = self.processListPage(task, result)
+        for tk in tasks:
+            url = tk['url']
+            idx = url.find('result/')
+            tk['url'] = url[:idx]+'/learn/'+url[idx:]
+            tk['type'] = 'list'
+        return tasks
+
+    def afterProcess(self, task, result):
+        if task['type'] == 'list' and task['sect'] == 'babytree':
+            eles = result['element']
+            nextpage = eles[0]['nextlistpage']
+            if nextpage:
+                task['url'] = 'https://m.babytree.com'+nextpage[0]
+                return [task]
+
+    def processDetailPage(self, task, result):
+        ele = result['element']
+        sect = task['sect']
+        if 'part' in task:
+            part = task['part']
+            ele['text'] = part['text'] + ele['text']
+            ele['pics'] = part['pics'] + ele['pics']
+            ele['video'] = part['video'] + ele['video']
+        if sect == 'babytree':
+            nextpage = ele['nextdetailpage']
+            if nextpage:
+                task['part'] = ele
+                task['url'] = 'https://m.babytree.com'+nextpage[0]
+                return [task]
+        if 'srcId' not in ele:
+            ele['srcId'] = task['url']
+        fakeUrl = sect+'//'+obj2string(ele['srcId'])
+        ret = spySuccess(fakeUrl, ele)
+        if ret == 1:
+            ele['source'] = sect.decode()
+            if 'title' in ele:
+                logging.info('Get article %s from %s'%(''.join(ele['title']), sect))
+                ele['title'] = obj2string(ele['title'])
+            ele['text'] = json.dumps(ele['text'])
+            if 'catgy' in ele:
+                ele['catgy'] = obj2string(ele['catgy'])
+            ele['pics'] = json.dumps(ele['pics'])
+            ele['video'] = json.dumps(ele['video'])
+            ele['srcId'] = obj2string(ele['srcId'])
+            ele['status'] = 'INIT'
+            if 'days' in ele:
+                ele['days'] = -1*ele['days'][0]
+            pushInto(Know, ele, ['source', 'srcId'])
+            

@@ -150,3 +150,5 @@ class PriceCrawler(PriceProcessor, Spider):pass
 class FlowswapCrawler(FlowswapProcessor, Spider):pass
 
 class ReportCrawler(ReportProcessor, Spider):pass
+
+class KnowledgeCrawler(KnowledgeProcessor, Spider):pass

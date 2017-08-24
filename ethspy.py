@@ -78,10 +78,18 @@ def getElementByJpathMap(obj, jpath_map):
             return results
     elif xtype == dict and '_list' in jpath_map and '_piece' in jpath_map:
         node_list = getElementByJpathMap(obj, jpath_map['_list'])
+        public = None
+        if '_public' in jpath_map:
+            public = getElementByJpathMap(obj, jpath_map['_public'])
         if type(node_list) != list:
             return []
         for node in node_list:
             element = getElementByJpathMap(node, jpath_map['_piece'])
+            if public:
+                if type(element) == dict:
+                    element.update(public)
+                elif type(element) == list:
+                    element.append(public)
             if len(element) > 0:
                 results.append(element)
     elif xtype == list:
@@ -129,8 +137,16 @@ def getElementByXpathMap(dom, xpath_map):
             if len(text) > 0:
                 results.append(text)
     elif xtype == dict and '_list' in xpath_map and '_piece' in xpath_map:
+        public = None
+        if '_public' in xpath_map:
+            public = getElementByXpathMap(dom, xpath_map['_public'])
         for node in dom.xpath(xpath_map['_list']):
             element = getElementByXpathMap(node, xpath_map['_piece'])
+            if public:
+                if type(element) == dict:
+                    element.update(public)
+                elif type(element) == list:
+                    element.append(public)
             if len(element) > 0:
                 results.append(element)
     elif xtype == list:
@@ -348,7 +364,7 @@ def fetch(url, proxy='', header=None, post=None, dynamic=False, js='', timeout=3
                     postStr = str(post)
                 kwargs['data'] = postStr
             if proxy != '':
-                if proxy.find('|') > 0:
+                if proxy.find('|') > 0:#for website need http basic auth
                     kwargs['auth'] = tuple(proxy.split('@')[0].split('|'))
                     proxy = proxy.split('@')[1]
                 if proxy.find('http://') < 0:

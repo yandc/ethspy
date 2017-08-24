@@ -11,6 +11,7 @@ Offset = getOrmModel('material', 'offset')
 Links = getOrmModel('material', 'links')
 LinkMap = getOrmModel('material', 'linkmap')
 Avatar = getOrmModel('material', 'avatar')
+Know = getOrmModel('material', 'knowledge')
 
 def pushInto(model, info, where=[], fnOnExist=None):
     if len(where) == 0:
